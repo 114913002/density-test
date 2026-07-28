@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密度偵探：實驗室挑戰</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Microsoft JhengHei","Noto Sans TC", "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #dff0f7 0%, #eef6f9 40%, #f5efe3 100%);
+    color: #2b2b2b;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  h1 {
+    text-align: center;
+    color: #1c4966;
+    padding-top: 25px;
+    margin-bottom: 5px;
+  }
+  .story {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 25px auto;
+    color: #444;
+    line-height: 1.6;
+    padding: 0 20px;
+  }
+  .steps {
+    max-width: 700px;
+    margin: 0 auto 25px auto;
+    background: #fffbe8;
+    border: 1px solid #eddca0;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #6b5b1e;
+  }
+  .lab-area {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    padding: 0 20px;
+  }
+  .instrument, .object-tray {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    padding: 18px 20px 22px 20px;
+    text-align: center;
+    min-width: 220px;
+  }
+  .object-tray {
+    background: #fdf6ec;
+    border: 2px dashed #c9a876;
+  }
+  .label {
+    font-weight: bold;
+    color: #1c4966;
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+  .sub-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: -6px;
+    margin-bottom: 10px;
+  }
+  .action-btn {
+    margin-top: 10px;
+    margin: 6px 4px 0 4px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #4fa3d1, #2f7fb0);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transition: transform 0.1s, background 0.2s;
+  }
+  .action-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, #5fb3e1, #3f8fc0);
+    transform: translateY(-1px);
+  }
+  .action-btn:disabled {
+    background: #c6c6c6;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .reading {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #33556b;
+    min-height: 20px;
+  }
+  #objectOnScale, #objectInWater {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #objectOnScale.show, #objectInWater.show {
+    opacity: 1;
+  }
+  .question-box {
+    max-width: 560px;
+    margin: 35px auto 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    padding: 25px 30px;
+    text-align: center;
+  }
+  .question-box h2 {
+    margin-top: 0;
+    color: #1c4966;
+  }
+  .question-box p {
+    line-height: 1.8;
+    font-size: 15px;
+  }
+  #answerInput {
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 2px solid #a9c9dd;
+    border-radius: 8px;
+    width: 140px;
+    text-align: center;
+  }
+  .feedback {
+    margin-top: 15px;
+    font-size: 15px;
+    font-weight: bold;
+    min-height: 22px;
+  }
+  .feedback.correct { color: #1a8a3d; }
+  .feedback.wrong { color: #c0392b; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  #btnRestart {
+    display: block;
+    margin: 20px auto 0 auto;
+  }
+  #fireworksCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 999;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+  <h1>🔬 密度偵探：找出神秘金屬塊的密度！</h1>
+  <p class="story">
+    實驗桌上放著一塊神秘金屬塊，請你使用<strong>電子天平</strong>測量質量、
+    使用<strong>量筒排水法</strong>測量體積，再運用密度公式算出答案吧！
+  </p>
+  <div class="steps">
+    📋 操作步驟：① 把物體放上天平測質量　② 記錄量筒原始水位　③ 把物體放入量筒觀察水位上升　④ 依讀數計算密度並作答
+  </div>
+
+  <div class="lab-area">
+
+    <!-- 待測物體展示區 -->
+    <div class="object-tray">
+      <div class="label">🪨 待測物體</div>
+      <div class="sub-label">神秘金屬塊</div>
+      <svg id="objectDisplay" width="90" height="90" viewBox="0 0 90 90">
+        <use href="#rockShape"></use>
+      </svg>
+    </div>
+
+    <!-- 電子天平 -->
+    <div class="instrument">
+      <div class="label">⚖️ 電子天平</div>
+      <div class="sub-label">MP-2000 精密電子秤</div>
+      <svg width="240" height="180" viewBox="0 0 240 180">
+        <defs>
+          <linearGradient id="metalGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#eeeeee"/>
+            <stop offset="55%" stop-color="#c3c3c3"/>
+            <stop offset="100%" stop-color="#9c9c9c"/>
+          </linearGradient>
+          <radialGradient id="panGrad" cx="50%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#fafafa"/>
+            <stop offset="100%" stop-color="#c7c7c7"/>
+          </radialGradient>
+        </defs>
+
+        <!-- 秤台底座 -->
+        <rect x="15" y="95" width="210" height="65" rx="10" fill="url(#metalGrad)" stroke="#7a7a7a" stroke-width="2"/>
+        <!-- 顯示螢幕 -->
+        <rect x="35" y="108" width="170" height="34" rx="5" fill="#0d0d0d" stroke="#444" stroke-width="2"/>
+        <text id="balanceDisplay" x="120" y="131" text-anchor="middle"
+              font-family="'Consolas','Courier New',monospace" font-size="22" fill="#39ff6a">0.0 g</text>
+        <!-- 裝飾按鈕 -->
+        <circle cx="45" cy="150" r="5" fill="#777"/>
+        <circle cx="65" cy="150" r="5" fill="#777"/>
+        <circle cx="195" cy="150" r="5" fill="#c0392b"/>
+        <text x="30" y="175" font-size="9" fill="#888">TARE</text>
+        <text x="50" y="175" font-size="9" fill="#888">ON/OFF</text>
+        <!-- 秤盤 -->
+        <ellipse cx="120" cy="90" rx="80" ry="12" fill="url(#panGrad)" stroke="#999" stroke-width="2"/>
+        <rect x="112" y="90" width="16" height="8" fill="#aaa"/>
+        <!-- 放在秤上的物體 -->
+        <g id="objectOnScale" transform="translate(75,15) scale(0.75)">
+          <use href="#rockShape"></use>
+        </g>
+      </svg>
+      <br>
+      <button id="btnWeigh" class="action-btn">把物體放上天平測量</button>
+      <div class="reading" id="massReadingText">尚未測量質量</div>
+    </div>
+
+    <!-- 量筒 -->
+    <div class="instrument">
+      <div class="label">💧 量筒（排水法）</div>
+      <div class="sub-label">100 mL 玻璃量筒</div>
+      <svg width="160" height="320" viewBox="0 0 160 320">
+        <defs>
+          <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#dff3ff" stop-opacity="0.35"/>
+            <stop offset="50%" stop-color="#ffffff" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#dff3ff" stop-opacity="0.35"/>
+          </linearGradient>
+        </defs>
+
+        <!-- 水 -->
+        <rect id="waterRect" x="48" y="270" width="64" height="0" fill="#2196f3" opacity="0.55"/>
+        <ellipse id="meniscus" cx="80" cy="270" rx="32" ry="4" fill="#7cc4ff" opacity="0.7"/>
+
+        <!-- 玻璃量筒外殼 -->
+        <rect x="45" y="18" width="70" height="255" rx="12" fill="url(#glassGrad)" stroke="#8fb9d9" stroke-width="2"/>
+
+        <!-- 刻度（由 JS 動態產生） -->
+        <g id="ticks" font-size="11" fill="#555" font-family="Arial"></g>
+
+        <!-- 沉入水中的物體 -->
+        <g id="objectInWater" transform="translate(58,215) scale(0.5)">
+          <use href="#rockShape"></use>
+        </g>
+
+        <!-- 底座 -->
+        <rect x="25" y="273" width="110" height="18" rx="4" fill="#cfcfcf" stroke="#999" stroke-width="2"/>
+        <!-- 倒水口 -->
+        <path d="M115 25 L132 13 L132 25 Z" fill="#dff3ff" opacity="0.5" stroke="#8fb9d9"/>
+      </svg>
+      <br>
+      <button id="btnPourMeasure" class="action-btn">記錄原始水位</button>
+      <button id="btnDropObject" class="action-btn" disabled>把物體放入量筒</button>
+      <div class="reading" id="volumeReadingText">尚未測量體積</div>
+    </div>
+  </div>
+
+  <!-- 共用岩石圖形定義 -->
+  <svg width="0" height="0" style="position:absolute;">
+    <defs>
+      <g id="rockShape">
+        <polygon points="45,5 70,20 85,50 65,80 30,85 8,55 15,20"
+                 fill="#8d7b68" stroke="#5c4d3d" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="45,5 70,20 55,35 35,25" fill="#ab937a" opacity="0.8"/>
+        <polygon points="30,85 65,80 55,60 25,60" fill="#6b5a48" opacity="0.6"/>
+        <polygon points="8,55 15,20 30,32 20,50" fill="#7a6852" opacity="0.5"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- 題目區 -->
+  <div class="question-box" id="questionBox" style="display:none;">
+    <h2>❓ 問題</h2>
+    <p>質量（天平讀數）：<strong id="qMass"></strong> g</p>
+    <p>量筒原始水位 V₁：<strong id="qV1"></strong> mL</p>
+    <p>放入物體後水位 V₂：<strong id="qV2"></strong> mL</p>
+    <p>請計算這塊金屬的<strong>密度</strong>是多少 g/cm³？（四捨五入到小數點後兩位）</p>
+    <input type="number" step="0.01" id="answerInput" placeholder="輸入密度數值">
+    <button id="btnSubmit" class="action-btn">送出答案</button>
+    <div id="feedback" class="feedback"></div>
+  </div>
+
+  <button id="btnRestart" class="action-btn" style="display:none;">🔄 再試一次</button>
+
+  <canvas id="fireworksCanvas"></canvas>
+
+<script>
+  // ===================== 基本參數 =====================
+  const BOTTOM_Y = 270;   // 量筒水位 0 mL 對應的 y 座標
+  const TOP_Y = 20;       // 量筒水位 100 mL 對應的 y 座標
+  const MAX_ML = 100;
+  const SCALE = (BOTTOM_Y - TOP_Y) / MAX_ML; // 每 1 mL 對應的像素高度
+
+  // ===================== 固定題目數值（不再隨機） =====================
+  const FIXED_MASS = 158.0; // g
+  const FIXED_V1 = 40;      // mL
+  const FIXED_V2 = 60;      // mL
+  // 正確密度 = 158.0 / (60 - 40) = 7.90 g/cm3（例如鐵塊）
+
+  let currentMass = FIXED_MASS;
+  let V1 = FIXED_V1;
+  let V2 = FIXED_V2;
+  let massMeasured = false;
+  let volumeMeasured = false;
+
+  // ===================== 設定題目（固定值） =====================
+  function generateQuestion() {
+    currentMass = FIXED_MASS;
+    V1 = FIXED_V1;
+    V2 = FIXED_V2;
+    massMeasured = false;
+    volumeMeasured = false;
+    resetUI();
+  }
+
+  function resetUI() {
+    document.getElementById('balanceDisplay').textContent = '0.0 g';
+    document.getElementById('objectOnScale').classList.remove('show');
+    document.getElementById('objectInWater').classList.remove('show');
+    document.getElementById('massReadingText').textContent = '尚未測量質量';
+    document.getElementById('volumeReadingText').textContent = '尚未測量體積';
+
+    document.getElementById('btnWeigh').disabled = false;
+    document.getElementById('btnPourMeasure').disabled = false;
+    document.getElementById('btnDropObject').disabled = true;
+
+    document.getElementById('questionBox').style.display = 'none';
+    document.getElementById('btnRestart').style.display = 'none';
+
+    document.getElementById('answerInput').value = '';
+    document.getElementById('answerInput').disabled = false;
+    document.getElementById('btnSubmit').disabled = false;
+
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+
+    setWaterLevel(V1);
+  }
+
+  // ===================== 量筒刻度繪製 =====================
+  function renderTicks() {
+    const ticksGroup = document.getElementById('ticks');
+    ticksGroup.innerHTML = '';
+    for (let ml = 0; ml <= 100; ml += 10) {
+      const y = BOTTOM_Y - ml * SCALE;
+      const isMajor = (ml % 20 === 0);
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', 108);
+      line.setAttribute('x2', isMajor ? 122 : 116);
+      line.setAttribute('y1', y);
+      line.setAttribute('y2', y);
+      line.setAttribute('stroke', '#4d4d4d');
+      line.setAttribute('stroke-width', isMajor ? 2 : 1);
+      ticksGroup.appendChild(line);
+
+      if (isMajor) {
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', 126);
+        text.setAttribute('y', y + 4);
+        text.textContent = ml;
+        ticksGroup.appendChild(text);
+      }
+    }
+  }
+  renderTicks();
+
+  // ===================== 水位控制 =====================
+  function setWaterLevel(vol) {
+    const y = BOTTOM_Y - vol * SCALE;
+    const h = vol * SCALE;
+    const rect = document.getElementById('waterRect');
+    rect.setAttribute('y', y);
+    rect.setAttribute('height', h);
+    document.getElementById('meniscus').setAttribute('cy', y);
+  }
+
+  function animateWaterLevel(fromVol, toVol, duration) {
+    let startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      setWaterLevel(fromVol + (toVol - fromVol) * progress);
+      if (progress < 1) requestAnimationFrame(step);
+      else setWaterLevel(toVol);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ===================== 天平數字動畫 =====================
+  function animateNumber(elem, start, end, duration, suffix, decimals) {
+    let startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      const value = start + (end - start) * progress;
+      elem.textContent = value.toFixed(decimals) + suffix;
+      if (progress < 1) requestAnimationFrame(step);
+      else elem.textContent = end.toFixed(decimals) + suffix;
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ===================== 事件：天平 =====================
+  document.getElementById('btnWeigh').addEventListener('click', () => {
+    document.getElementById('btnWeigh').disabled = true;
+    document.getElementById('objectOnScale').classList.add('show');
+    animateNumber(document.getElementById('balanceDisplay'), 0, currentMass, 1200, ' g', 1);
+    setTimeout(() => {
+      massMeasured = true;
+      document.getElementById('massReadingText').textContent =
+        `質量讀數：${currentMass.toFixed(1)} g`;
+      checkBothMeasured();
+    }, 1300);
+  });
+
+  // ===================== 事件：量筒 =====================
+  document.getElementById('btnPourMeasure').addEventListener('click', () => {
+    document.getElementById('volumeReadingText').textContent =
+      `原始水位 V₁ = ${V1} mL（請記住這個數字！）`;
+    document.getElementById('btnPourMeasure').disabled = true;
+    document.getElementById('btnDropObject').disabled = false;
+  });
+
+  document.getElementById('btnDropObject').addEventListener('click', () => {
+    document.getElementById('btnDropObject').disabled = true;
+    document.getElementById('objectInWater').classList.add('show');
+    animateWaterLevel(V1, V2, 1400);
+    setTimeout(() => {
+      volumeMeasured = true;
+      document.getElementById('volumeReadingText').textContent =
+        `放入後水位 V₂ = ${V2} mL`;
+      checkBothMeasured();
+    }, 1500);
+  });
+
+  // ===================== 兩項測量都完成後顯示題目 =====================
+  function checkBothMeasured() {
+    if (massMeasured && volumeMeasured) {
+      document.getElementById('qMass').textContent = currentMass.toFixed(1);
+      document.getElementById('qV1').textContent = V1;
+      document.getElementById('qV2').textContent = V2;
+      const box = document.getElementById('questionBox');
+      box.style.display = 'block';
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // ===================== 答案檢查 =====================
+  document.getElementById('btnSubmit').addEventListener('click', () => {
+    const input = document.getElementById('answerInput');
+    const val = parseFloat(input.value);
+    const feedback = document.getElementById('feedback');
+
+    if (isNaN(val)) {
+      feedback.textContent = '請先輸入一個數字喔！';
+      feedback.className = 'feedback wrong shake';
+      setTimeout(() => feedback.classList.remove('shake'), 400);
+      return;
+    }
+
+    const volume = V2 - V1;
+    const correct = +(currentMass / volume).toFixed(2);
+
+    if (Math.abs(val - correct) <= 0.05) {
+      feedback.innerHTML = `🎉 答對了！密度 = ${correct} g/cm³，你是密度偵探大師！`;
+      feedback.className = 'feedback correct';
+      input.disabled = true;
+      document.getElementById('btnSubmit').disabled = true;
+      document.getElementById('btnRestart').style.display = 'inline-block';
+      launchFireworksShow();
+    } else {
+      let hint;
+      const commonMistake = +(currentMass / V2).toFixed(2); // 忘記減去 V1 的常見錯誤
+      if (Math.abs(val - commonMistake) <= 0.05) {
+        hint = '💡 提示：你是不是忘記把量筒「原始水位」減掉了呢？體積應該是 V₂ − V₁ 喔！';
+      } else if (val > correct) {
+        hint = '💡 提示：答案有點大了，再檢查看看你的計算（密度 = 質量 ÷ 體積）。';
+      } else {
+        hint = '💡 提示：答案有點小了，再檢查看看你的計算（密度 = 質量 ÷ 體積）。';
+      }
+      feedback.textContent = hint;
+      feedback.className = 'feedback wrong shake';
+      setTimeout(() => feedback.classList.remove('shake'), 400);
+    }
+  });
+
+  // ===================== 再試一次（同一題重來） =====================
+  document.getElementById('btnRestart').addEventListener('click', generateQuestion);
+
+  // ===================== 煙火動畫 =====================
+  const canvas = document.getElementById('fireworksCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let animating = false;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function randomColor() {
+    const colors = ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#eccc68', '#ff6b81', '#7bed9f', '#70a1ff', '#ff9ff3'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  function createFirework(x, y) {
+    const count = 60;
+    const color = randomColor();
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.2;
+      const speed = 2 + Math.random() * 4;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1,
+        color,
+        size: 2 + Math.random() * 2
+      });
+    }
+  }
+
+  function updateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05;
+      p.alpha -= 0.012;
+    });
+    particles = particles.filter(p => p.alpha > 0);
+    particles.forEach(p => {
+      ctx.globalAlpha = Math.max(p.alpha, 0);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function fireworksLoop() {
+    updateParticles();
+    if (particles.length > 0 || animating) {
+      requestAnimationFrame(fireworksLoop);
+    } else {
+      canvas.style.display = 'none';
+    }
+  }
+
+  function launchFireworksShow() {
+    canvas.style.display = 'block';
+    animating = true;
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        const x = canvas.width * (0.2 + Math.random() * 0.6);
+        const y = canvas.height * (0.2 + Math.random() * 0.3);
+        createFirework(x, y);
+      }, i * 400);
+    }
+    setTimeout(() => { animating = false; }, 6 * 400 + 500);
+    fireworksLoop();
+  }
+
+  // ===================== 初始化 =====================
+  generateQuestion();
+</script>
+</body>
+</html>
